@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "352001833527",
+    "project_id": "cbfront-e3c0b",
+    "storage_bucket": "cbfront-e3c0b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:352001833527:android:e42fc5e6ddfe049cdfddb2",
+        "android_client_info": {
+          "package_name": "com.cbfront"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBr8kRUKhQ0uqGPXtk9lroe0AEbiLX-NKI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
