@@ -1,4 +1,3 @@
-// src/components/QuestionCard.tsx
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors } from '../theme/colors';
@@ -25,8 +24,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 1,
     borderColor: colors.border,
-    justifyContent: 'center',      // centra verticalmente
-    alignItems: 'center',          // centra horizontalmente
+    justifyContent: 'center',      
+    alignItems: 'center',        
   },
   text: {
     color: colors.white,

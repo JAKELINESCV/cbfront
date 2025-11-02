@@ -1,4 +1,3 @@
-// src/components/AnswerButton.tsx
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { colors } from '../theme/colors';
@@ -36,14 +35,14 @@ export default AnswerButton;
 
 const styles = StyleSheet.create({
   button: {
-    width: '90%',                 // ocupa 90% del ancho de la pantalla
+    width: '90%',                
     paddingVertical: 14,
     borderRadius: 12,
     marginVertical: 6,
     borderWidth: 1,
     borderColor: colors.border,
-    justifyContent: 'center',      // centra el texto verticalmente
-    alignItems: 'center',          // centra el texto horizontalmente
+    justifyContent: 'center',      
+    alignItems: 'center',         
   },
   text: {
     color: colors.white,

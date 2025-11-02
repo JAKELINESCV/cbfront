@@ -1,11 +1,11 @@
-// src/presentation/components/ScoreBoard.tsx
+
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors } from '../theme/colors';
 
 interface Props {
   score: number;
-  total: number; // <-- agregar esto
+  total: number; 
 }
 
 const ScoreBoard: React.FC<Props> = ({ score, total }) => {

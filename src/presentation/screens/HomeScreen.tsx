@@ -90,7 +90,7 @@ export default function HomeScreen() {
   /**
    * Maneja el cierre de sesión
    */
-  const handleLogout = () => {
+const handleLogout = () => {
   Alert.alert(
     'Cerrar Sesión',
     '¿Estás seguro que quieres salir?',
@@ -109,13 +109,24 @@ export default function HomeScreen() {
 };
 
 const logoutAsync = async () => {
+  const user = auth().currentUser;
+  if (!user) {
+    console.warn('No hay usuario logueado, nada que cerrar.');
+    // Opcional: navegar a Login
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+    return;
+  }
+
   try {
     await auth().signOut();
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
   } catch (error) {
     console.error('Error al cerrar sesión:', error);
     Alert.alert('Error', 'No se pudo cerrar la sesión');
   }
 };
+
+
   /**
    * Navega a la pantalla de selección de nivel
    */
@@ -233,7 +244,7 @@ const logoutAsync = async () => {
   );
 }
 
-// ESTILOS SIN MODIFICAR
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
