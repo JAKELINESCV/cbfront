@@ -118,7 +118,7 @@ export default function HomeScreen() {
           <LinearGradient colors={colors.gradients.primary} style={styles.logoBox}>
             <Icon name="code-slash" size={60} color={colors.white} />
           </LinearGradient>
-          <Text style={styles.logoTitle}>CodeBrain</Text>
+          <Text style={styles.logoTitle}>32</Text>
           <Text style={styles.logoSubtitle}>¿Listo para el desafío?</Text>
         </View>
 
