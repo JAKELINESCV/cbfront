@@ -1,140 +1,154 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { colors } from '../theme/colors';
 import Timer from '../components/Timer';
-
-type RootStackParamList = {
-  Game: { level?: string; difficulty?: string };
-  Result: { score: number; total: number; difficulty?: string };
-};
-
-type GameScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Game'>;
-type GameScreenRouteProp = RouteProp<RootStackParamList, 'Game'>;
-
-const mockQuestions = [
-  { question: '¿Qué significa HTML?', options: ['HyperText Markup Language','HighText Machine Language','HyperTool Multi Language','HomeTool Markup Language'], answer: 0 },
-  { question: '¿Cuál es el lenguaje que usa React Native?', options: ['Python','JavaScript','C#','Dart'], answer: 1 },
-  { question: '¿Qué comando inicia un proyecto React Native?', options: ['npm start','npx react-native init','expo build','node create'], answer: 1 },
-];
+import QuestionCard from '../components/QuestionCard';
+import AnswerButton from '../components/AnswerButton';
+import ScoreBoard from '../components/ScoreBoard';
+import { getQuestionsByLevelUseCase } from '../../domain/usecases/game/GetQuestionsByLevelUseCase';
+import { calculateScoreUseCase } from '../../domain/usecases/game/CalculateScoreUseCase';
+import { saveLocalScoreCase } from '../../utils/AsyncStorageHelper'; // <-- IMPORT
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+import { WebView } from 'react-native-webview';
 
 export default function GameScreen() {
-  const navigation = useNavigation<GameScreenNavigationProp>();
-  const route = useRoute<GameScreenRouteProp>();
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
 
-  const incomingDifficulty = route.params?.difficulty ?? 'básico';
-  const incomingLevel = route.params?.level ?? '1';
+  const difficulty = route.params?.difficulty ?? 'basic';
+  const level = route.params?.level ?? '1';
 
+  const [questions, setQuestions] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [timerKey, setTimerKey] = useState(0);
+  const [pointsPerQuestion, setPointsPerQuestion] = useState(10);
+  const [totalPoints, setTotalPoints] = useState(0);
 
-  const normalize = (s: string) => (s || 'básico').toString().toLowerCase();
-  const getMultiplier = (lvl: string) => {
-    const l = normalize(lvl);
-    if (['intermedio','intermediate','medium'].includes(l)) return 2;
-    if (['dificil','difficult','advanced','hard'].includes(l)) return 3;
-    return 1;
+  const { width } = Dimensions.get('window');
+  const currentUser = auth().currentUser;
+
+  const getPointsForDifficultyAndLevel = (diff: string, lvl: string) => {
+    const base = diff === 'intermediate' ? 15 : diff === 'advanced' ? 20 : 10;
+    return base + (parseInt(lvl) - 1) * 5;
   };
 
-  const multiplier = getMultiplier(incomingDifficulty);
+  useEffect(() => {
+    const loadQuestions = async () => {
+      const pts = getPointsForDifficultyAndLevel(difficulty, level);
+      setPointsPerQuestion(pts);
 
-  const handleNextQuestion = () => {
-    if (currentIndex + 1 < mockQuestions.length) {
-      setCurrentIndex((p) => p + 1);
-      setSelected(null);
-      setTimerKey((p) => p + 1);
+      const fetchedQuestions = await getQuestionsByLevelUseCase(difficulty, level);
+      setQuestions(fetchedQuestions.sort(() => Math.random() - 0.5));
+      setTotalPoints(fetchedQuestions.length * pts);
+    };
+    loadQuestions();
+  }, [difficulty, level]);
+
+  const handleAnswer = (index: number) => {
+    if (selectedOption !== null) return;
+
+    setSelectedOption(index);
+    const currentQuestion = questions[currentIndex];
+    const isCorrect = index === currentQuestion.answer;
+
+    let newScore = score;
+    if (isCorrect) newScore = calculateScoreUseCase(score, pointsPerQuestion);
+    setScore(newScore);
+
+    setTimeout(() => handleNextQuestion(newScore), 800);
+  };
+
+  const handleNextQuestion = async (currentScore: number) => {
+    if (currentIndex + 1 < questions.length) {
+      setCurrentIndex(prev => prev + 1);
+      setSelectedOption(null);
+      setTimerKey(prev => prev + 1);
     } else {
+      // Guardar puntaje local por usuario y dificultad
+      if (currentUser) {
+        await saveLocalScoreCase(currentUser.uid, difficulty as any, currentScore);
+
+        // Actualizar estadísticas en Firestore
+        const userDoc = firestore().collection('users').doc(currentUser.uid);
+        const docSnap = await userDoc.get();
+if (docSnap.exists()) {
+  const data = docSnap.data();
+  const newTotal = (data?.totalScore || 0) + currentScore;
+  const newGames = (data?.gamesPlayed || 0) + 1;
+  const newBest = Math.max(data?.bestScore || 0, currentScore);
+
+  await userDoc.update({
+    totalScore: newTotal,
+    gamesPlayed: newGames,
+    bestScore: newBest,
+  });
+}
+
+      }
+
       navigation.replace('Result', {
-        score,
-        total: mockQuestions.length * 10 * multiplier,
-        difficulty: incomingDifficulty,
+        score: currentScore,
+        total: totalPoints,
+        difficulty,
       });
     }
   };
 
-  const handleAnswer = (index: number) => {
-    setSelected(index);
-    if (index === mockQuestions[currentIndex].answer) {
-      setScore((p) => p + 10 * multiplier);
-    }
-    setTimeout(() => handleNextQuestion(), 800);
-  };
+  if (questions.length === 0)
+    return <LinearGradient colors={colors.gradients.background} style={styles.container} />;
+
+  const currentQuestion = questions[currentIndex];
 
   return (
     <LinearGradient colors={colors.gradients.background} style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name="arrow-back" size={26} color={colors.white} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.levelText}>Dificultad: {normalize(incomingDifficulty).toUpperCase()}</Text>
-          <Text style={styles.scoreText}>Puntaje: {score}</Text>
-        </View>
-        <View style={{ width: 26 }} />
-      </View>
-
-      <View style={styles.timerContainer}>
-        <Timer key={timerKey} duration={15} onTimeUp={handleNextQuestion} />
-      </View>
-
-      <View style={styles.centerContent}>
-        <View style={styles.questionBox}>
-          <Text style={styles.questionText}>{mockQuestions[currentIndex].question}</Text>
-        </View>
-        <View style={styles.optionsBox}>
-          {mockQuestions[currentIndex].options.map((option, idx) => {
-            const isSelected = selected === idx;
-            const isCorrect = selected !== null && idx === mockQuestions[currentIndex].answer;
-            const isWrong = selected !== null && isSelected && idx !== mockQuestions[currentIndex].answer;
-
-            return (
-              <TouchableOpacity
-                key={idx}
-                style={[
-                  styles.optionButton,
-                  isSelected && styles.optionSelected,
-                  isCorrect && styles.optionCorrect,
-                  isWrong && styles.optionWrong,
-                ]}
-                onPress={() => handleAnswer(idx)}
-                disabled={selected !== null}
-              >
-                <Text style={styles.optionText}>{option}</Text>
-              </TouchableOpacity>
-            );
-          })}
+      <View style={styles.topContainer}>
+        <ScoreBoard score={score} total={totalPoints} />
+        <Timer key={timerKey} duration={15} onTimeUp={() => handleNextQuestion(score)} />
+        <View style={[styles.gifContainer, { width: width * 0.7, height: width * 0.7 }]}>
+          <WebView
+            style={styles.gif}
+            originWhitelist={['*']}
+            source={{
+              html: `<html><body style="margin:0;background:transparent">
+                      <img src="https://media.tenor.com/y2JXkY1pXkwAAAAM/cat-computer.gif" style="width:100%;height:100%;border-radius:15px"/>
+                    </body></html>`,
+            }}
+            scrollEnabled={false}
+          />
         </View>
       </View>
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Pregunta {currentIndex + 1} de {mockQuestions.length}</Text>
-      </View>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <QuestionCard question={currentQuestion.question} />
+        {currentQuestion.options.map((option: string, idx: number) => {
+          const isSelected = selectedOption === idx;
+          const isCorrect = selectedOption !== null && idx === currentQuestion.answer;
+          const isWrong = selectedOption !== null && isSelected && idx !== currentQuestion.answer;
+          return (
+            <AnswerButton
+              key={idx}
+              text={option}
+              onPress={() => handleAnswer(idx)}
+              isSelected={isSelected}
+              isCorrect={isCorrect}
+              isWrong={isWrong}
+            />
+          );
+        })}
+      </ScrollView>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 20, paddingVertical: 10 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  backButton: { padding: 5 },
-  headerCenter: { alignItems: 'center', flex: 1 },
-  levelText: { color: colors.textSecondary, fontSize: 16, fontWeight: '600' },
-  scoreText: { color: colors.white, fontSize: 16, fontWeight: 'bold', marginTop: 4 },
-  timerContainer: { alignItems: 'center', marginVertical: 10 },
-  centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  questionBox: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20, padding: 24, borderWidth: 1, borderColor: colors.border, marginBottom: 20, width: '100%' },
-  questionText: { color: colors.white, fontSize: 20, fontWeight: 'bold', textAlign: 'center' },
-  optionsBox: { width: '100%' },
-  optionButton: { backgroundColor: 'rgba(255,255,255,0.1)', padding: 14, borderRadius: 12, marginVertical: 6 },
-  optionSelected: { borderColor: colors.primary, borderWidth: 1 },
-  optionCorrect: { backgroundColor: 'rgba(0,255,0,0.2)', borderColor: 'lime' },
-  optionWrong: { backgroundColor: 'rgba(255,0,0,0.2)', borderColor: 'red' },
-  optionText: { color: colors.white, fontSize: 16, textAlign: 'center' },
-  footer: { alignItems: 'center', marginBottom: 10 },
-  footerText: { color: colors.textSecondary, fontSize: 14 },
+  container: { flex: 1, padding: 20 },
+  topContainer: { marginTop: 40, width: '100%', alignItems: 'center', gap: 12, marginBottom: 15 },
+  gifContainer: { overflow: 'hidden', borderRadius: 15, marginTop: 10, backgroundColor: 'transparent' },
+  gif: { flex: 1, backgroundColor: 'transparent' },
+  scrollContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', gap: 12, paddingBottom: 20 },
 });

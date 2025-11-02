@@ -15,6 +15,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { colors } from '../theme/colors';
 import { User } from '../../domain/entities/User';
+import { getAllLocalScores, saveLocalScoreCase } from '../../utils/AsyncStorageHelper';
 
 type RootStackParamList = {
   Home: undefined;
@@ -28,13 +29,12 @@ type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const currentUser = auth().currentUser;
-  
+
   const [userData, setUserData] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [localScores, setLocalScores] = useState({ basic: 0, intermediate: 0, advanced: 0 });
 
-  /**
-   * Carga los datos del usuario desde Firestore
-   */
+  // 🔹 Escucha Firestore en tiempo real y carga puntajes locales
   useEffect(() => {
     if (!currentUser) return;
 
@@ -42,9 +42,14 @@ export default function HomeScreen() {
       .collection('users')
       .doc(currentUser.uid)
       .onSnapshot(
-        (doc) => {
+        async (doc) => {
           if (doc.exists()) {
-            setUserData(doc.data() as User);
+            const data = doc.data() as User;
+            setUserData(data);
+
+            // Actualiza los puntajes locales por usuario
+            const scores = await getAllLocalScores(currentUser.uid);
+            setLocalScores(scores);
           }
           setLoading(false);
         },
@@ -58,40 +63,65 @@ export default function HomeScreen() {
   }, [currentUser]);
 
   /**
+   * Función para actualizar los puntajes locales al finalizar un nivel
+   */
+  const updateLocalScore = async (level: 'basic' | 'intermediate' | 'advanced', score: number) => {
+    if (!currentUser) return;
+
+    // Guardar puntaje local
+    await saveLocalScoreCase(currentUser.uid, level, score);
+
+    // Actualizar estado local
+    const scores = await getAllLocalScores(currentUser.uid);
+    setLocalScores(scores);
+
+    // Actualizar estadísticas globales en Firestore
+    const newTotal = (userData?.totalScore || 0) + score;
+    const newGames = (userData?.gamesPlayed || 0) + 1;
+    const newBest = Math.max(userData?.bestScore || 0, score);
+
+    await firestore().collection('users').doc(currentUser.uid).update({
+      totalScore: newTotal,
+      gamesPlayed: newGames,
+      bestScore: newBest,
+    });
+  };
+
+  /**
    * Maneja el cierre de sesión
    */
   const handleLogout = () => {
-    Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro que quieres salir?',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Salir',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await auth().signOut();
-            } catch (error) {
-              console.error('Error al cerrar sesión:', error);
-              Alert.alert('Error', 'No se pudo cerrar la sesión');
-            }
-          },
-        },
-      ]
-    );
-  };
+  Alert.alert(
+    'Cerrar Sesión',
+    '¿Estás seguro que quieres salir?',
+    [
+      {
+        text: 'Cancelar',
+        style: 'cancel',
+      },
+      {
+        text: 'Salir',
+        style: 'destructive',
+        onPress: () => logoutAsync(),
+      },
+    ]
+  );
+};
 
+const logoutAsync = async () => {
+  try {
+    await auth().signOut();
+  } catch (error) {
+    console.error('Error al cerrar sesión:', error);
+    Alert.alert('Error', 'No se pudo cerrar la sesión');
+  }
+};
   /**
    * Navega a la pantalla de selección de nivel
    */
   const handlePlayGame = () => {
-  navigation.navigate('LevelSelection', { difficulty: 'basic' });
-};
-
+    navigation.navigate('LevelSelection', { difficulty: 'basic' });
+  };
 
   if (loading) {
     return (
@@ -118,7 +148,7 @@ export default function HomeScreen() {
           <LinearGradient colors={colors.gradients.primary} style={styles.logoBox}>
             <Icon name="code-slash" size={60} color={colors.white} />
           </LinearGradient>
-          <Text style={styles.logoTitle}>32</Text>
+          <Text style={styles.logoTitle}>CodeBrain</Text>
           <Text style={styles.logoSubtitle}>¿Listo para el desafío?</Text>
         </View>
 
@@ -144,6 +174,14 @@ export default function HomeScreen() {
               <Text style={styles.statLabel}>Mejor Score</Text>
             </View>
           </View>
+
+          {/* MOSTRAR PUNTAJES LOCALES POR DIFICULTAD */}
+          <View style={{ marginTop: 16, alignItems: 'center' }}>
+            <Text style={{ color: colors.white, fontSize: 14 }}>Puntajes Locales:</Text>
+            <Text style={{ color: colors.textSecondary }}>Básico: {localScores.basic} pts</Text>
+            <Text style={{ color: colors.textSecondary }}>Intermedio: {localScores.intermediate} pts</Text>
+            <Text style={{ color: colors.textSecondary }}>Avanzado: {localScores.advanced} pts</Text>
+          </View>
         </View>
 
         <TouchableOpacity onPress={handlePlayGame} activeOpacity={0.8}>
@@ -158,34 +196,32 @@ export default function HomeScreen() {
           <Text style={styles.quickLevelsTitle}>Acceso Rápido</Text>
           
           <View style={styles.levelButtons}>
-                  <TouchableOpacity
-          style={[styles.levelCard, styles.levelBasic]}
-          onPress={() => navigation.navigate('LevelSelection', { difficulty: 'basic' })}
-        >
-          <Icon name="flower-outline" size={32} color={colors.white} />
-          <Text style={styles.levelCardTitle}>Básico</Text>
-          <Text style={styles.levelCardDesc}>10 pts c/u</Text>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.levelCard, styles.levelBasic]}
+              onPress={() => navigation.navigate('LevelSelection', { difficulty: 'basic' })}
+            >
+              <Icon name="flower-outline" size={32} color={colors.white} />
+              <Text style={styles.levelCardTitle}>Básico</Text>
+              <Text style={styles.levelCardDesc}>10 pts c/u</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.levelCard, styles.levelInter]}
-          onPress={() => navigation.navigate('LevelSelection', { difficulty: 'intermediate' })}
-        >
-          <Icon name="fitness-outline" size={32} color={colors.white} />
-          <Text style={styles.levelCardTitle}>Intermedio</Text>
-          <Text style={styles.levelCardDesc}>15 pts c/u</Text>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.levelCard, styles.levelInter]}
+              onPress={() => navigation.navigate('LevelSelection', { difficulty: 'intermediate' })}
+            >
+              <Icon name="fitness-outline" size={32} color={colors.white} />
+              <Text style={styles.levelCardTitle}>Intermedio</Text>
+              <Text style={styles.levelCardDesc}>15 pts c/u</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.levelCard, styles.levelAdv]}
-          onPress={() => navigation.navigate('LevelSelection', { difficulty: 'advanced' })}
-        >
-          <Icon name="flame-outline" size={32} color={colors.white} />
-          <Text style={styles.levelCardTitle}>Avanzado</Text>
-          <Text style={styles.levelCardDesc}>20 pts c/u</Text>
-        </TouchableOpacity>
-
-
+            <TouchableOpacity
+              style={[styles.levelCard, styles.levelAdv]}
+              onPress={() => navigation.navigate('LevelSelection', { difficulty: 'advanced' })}
+            >
+              <Icon name="flame-outline" size={32} color={colors.white} />
+              <Text style={styles.levelCardTitle}>Avanzado</Text>
+              <Text style={styles.levelCardDesc}>20 pts c/u</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -197,6 +233,7 @@ export default function HomeScreen() {
   );
 }
 
+// ESTILOS SIN MODIFICAR
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -270,6 +307,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     borderWidth: 1,
     borderColor: colors.border,
+ 
+
   },
   statsTitle: {
     fontSize: 20,

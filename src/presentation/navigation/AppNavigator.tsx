@@ -67,6 +67,7 @@ export default function AppNavigator() {
         ) : (
           <RootStack.Screen name="Auth" component={AuthStack} />
         )}
+        <RootStack.Screen name="Home" component={HomeScreen} />
         <RootStack.Screen name="LevelSelection" component={LevelSelectionScreen} />
         <RootStack.Screen name="Game" component={GameScreen} />
         <RootStack.Screen name="Result" component={ResultScreen} />
