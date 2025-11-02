@@ -18,7 +18,7 @@ import { User } from '../../domain/entities/User';
 
 type RootStackParamList = {
   Home: undefined;
-  LevelSelection: undefined;
+  LevelSelection: { difficulty: string };
   Profile: undefined;
   Login: undefined;
 };
@@ -89,8 +89,9 @@ export default function HomeScreen() {
    * Navega a la pantalla de selección de nivel
    */
   const handlePlayGame = () => {
-    navigation.navigate('LevelSelection');
-  };
+  navigation.navigate('LevelSelection', { difficulty: 'basic' });
+};
+
 
   if (loading) {
     return (
@@ -148,7 +149,7 @@ export default function HomeScreen() {
         <TouchableOpacity onPress={handlePlayGame} activeOpacity={0.8}>
           <LinearGradient colors={colors.gradients.primary} style={styles.playButton}>
             <Icon name="play" size={28} color={colors.white} />
-            <Text style={styles.playButtonText}>Jugar Ahora</Text>
+            <Text style={styles.playButtonText}>Jugar  Ahora</Text>
             <Icon name="arrow-forward" size={24} color={colors.white} />
           </LinearGradient>
         </TouchableOpacity>
@@ -157,23 +158,34 @@ export default function HomeScreen() {
           <Text style={styles.quickLevelsTitle}>Acceso Rápido</Text>
           
           <View style={styles.levelButtons}>
-            <TouchableOpacity style={[styles.levelCard, styles.levelBasic]}>
-              <Icon name="flower-outline" size={32} color={colors.white} />
-              <Text style={styles.levelCardTitle}>Básico</Text>
-              <Text style={styles.levelCardDesc}>10 pts c/u</Text>
-            </TouchableOpacity>
+                  <TouchableOpacity
+          style={[styles.levelCard, styles.levelBasic]}
+          onPress={() => navigation.navigate('LevelSelection', { difficulty: 'basic' })}
+        >
+          <Icon name="flower-outline" size={32} color={colors.white} />
+          <Text style={styles.levelCardTitle}>Básico</Text>
+          <Text style={styles.levelCardDesc}>10 pts c/u</Text>
+        </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.levelCard, styles.levelInter]}>
-              <Icon name="fitness-outline" size={32} color={colors.white} />
-              <Text style={styles.levelCardTitle}>Intermedio</Text>
-              <Text style={styles.levelCardDesc}>15 pts c/u</Text>
-            </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.levelCard, styles.levelInter]}
+          onPress={() => navigation.navigate('LevelSelection', { difficulty: 'intermediate' })}
+        >
+          <Icon name="fitness-outline" size={32} color={colors.white} />
+          <Text style={styles.levelCardTitle}>Intermedio</Text>
+          <Text style={styles.levelCardDesc}>15 pts c/u</Text>
+        </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.levelCard, styles.levelAdv]}>
-              <Icon name="flame-outline" size={32} color={colors.white} />
-              <Text style={styles.levelCardTitle}>Avanzado</Text>
-              <Text style={styles.levelCardDesc}>20 pts c/u</Text>
-            </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.levelCard, styles.levelAdv]}
+          onPress={() => navigation.navigate('LevelSelection', { difficulty: 'advanced' })}
+        >
+          <Icon name="flame-outline" size={32} color={colors.white} />
+          <Text style={styles.levelCardTitle}>Avanzado</Text>
+          <Text style={styles.levelCardDesc}>20 pts c/u</Text>
+        </TouchableOpacity>
+
+
           </View>
         </View>
 
