@@ -1,7 +1,9 @@
 import React from 'react';
-import { StatusBar } from 'react-native';
+import { StatusBar, LogBox } from 'react-native';
 import AppNavigator from './src/presentation/navigation/AppNavigator';
 import { colors } from './src/presentation/theme/colors';
+
+LogBox.ignoreAllLogs(true);
 
 function App(): React.JSX.Element {
   return (

@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles */
 import React, { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 import { colors } from '../theme/colors';
@@ -19,7 +20,7 @@ const Timer: React.FC<TimerProps> = ({ duration, onTimeUp, isRunning = true }) =
     }
     const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
     return () => clearTimeout(timer);
-  }, [timeLeft, isRunning]);
+  }, [timeLeft, isRunning, onTimeUp]);
 
   useEffect(() => {
     setTimeLeft(duration);

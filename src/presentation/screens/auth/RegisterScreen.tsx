@@ -29,14 +29,14 @@ type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Reg
 export default function RegisterScreen() {
   const navigation = useNavigation<RegisterScreenNavigationProp>();
   
-  // Estados del formulario
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [birthDate, setBirthDate] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  /**
-   * Limpia todos los campos del formulario
-   */
   const clearForm = () => {
     setFirstName('');
     setLastName('');
@@ -46,38 +46,19 @@ export default function RegisterScreen() {
     setShowPassword(false);
   };
 
-  /**
-   * Formatea automáticamente la fecha mientras el usuario escribe
-   * Añade "/" después del día y mes automáticamente
-   */
   const handleDateChange = (text: string) => {
     const numbers = text.replace(/[^\d]/g, '');
-    
     let formatted = '';
     
-    // Formatear DD/MM/YYYY automáticamente
     if (numbers.length > 0) {
       formatted = numbers.substring(0, 2);
-      
-      if (numbers.length >= 3) {
-        formatted += '/' + numbers.substring(2, 4);
-      }
-      
-      if (numbers.length >= 5) {
-        formatted += '/' + numbers.substring(4, 8);
-      }
+      if (numbers.length >= 3) formatted += '/' + numbers.substring(2, 4);
+      if (numbers.length >= 5) formatted += '/' + numbers.substring(4, 8);
     }
     
     setBirthDate(formatted);
   };
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
 
-  /**
-   * Valida que todos los campos cumplan con los requisitos
-   */
   const validateFields = (): boolean => {
     if (!firstName || !lastName || !birthDate || !email || !password) {
       Alert.alert('Error', 'Por favor completa todos los campos.');
@@ -94,14 +75,12 @@ export default function RegisterScreen() {
       return false;
     }
 
-    // Validar formato de fecha (DD/MM/YYYY)
     const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
     if (!dateRegex.test(birthDate)) {
       Alert.alert('Error', 'La fecha debe estar en formato DD/MM/YYYY (ej: 15/08/2000).');
       return false;
     }
 
-    // Validar que sea mayor de 18 años
     const [day, month, year] = birthDate.split('/').map(Number);
     const birth = new Date(year, month - 1, day);
     const today = new Date();
@@ -125,12 +104,8 @@ export default function RegisterScreen() {
     return true;
   };
 
-  /**
-   * Crea el perfil del usuario en Firestore
-   */
   const createUserProfile = async (userId: string) => {
     try {
-      // Convertir fecha a formato YYYY-MM-DD para almacenar
       const [day, month, year] = birthDate.split('/');
       const formattedDate = `${year}-${month}-${day}`;
 
@@ -153,13 +128,8 @@ export default function RegisterScreen() {
     }
   };
 
-  /**
-   * Maneja el proceso completo de registro
-   */
   const handleRegister = async () => {
-    if (!validateFields()) {
-      return;
-    }
+    if (!validateFields()) return;
 
     setLoading(true);
 
@@ -212,43 +182,40 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.keyboardView}
+      style={s.flex}
     >
-      <LinearGradient
-        colors={colors.gradients.background}
-        style={styles.gradient}
-      >
-        <View style={styles.codeBackground}>
-          <Text style={styles.codeText}>const brain = {'{'}</Text>
-          <Text style={styles.codeText}>  level: 'expert',</Text>
-          <Text style={styles.codeText}>  ready: true</Text>
-          <Text style={styles.codeText}>{'}'}</Text>
-          <Text style={styles.codeText}></Text>
-          <Text style={styles.codeText}>function play() {'{'}</Text>
-          <Text style={styles.codeText}>  return '🎮';</Text>
-          <Text style={styles.codeText}>{'}'}</Text>
+      <LinearGradient colors={colors.gradients.background} style={s.flex}>
+        <View style={s.codeBg}>
+          <Text style={s.codeText}>const brain = {'{'}</Text>
+          <Text style={s.codeText}>  level: 'expert',</Text>
+          <Text style={s.codeText}>  ready: true</Text>
+          <Text style={s.codeText}>{'}'}</Text>
+          <Text style={s.codeText} />
+          <Text style={s.codeText}>function play() {'{'}</Text>
+          <Text style={s.codeText}>  return '🎮';</Text>
+          <Text style={s.codeText}>{'}'}</Text>
         </View>
 
         <ScrollView 
-          contentContainerStyle={styles.scrollContainer}
+          contentContainerStyle={s.scroll}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.logoContainer}>
-            <LinearGradient colors={colors.gradients.primary} style={styles.logoBox}>
+          <View style={s.logo}>
+            <LinearGradient colors={colors.gradients.primary} style={s.logoBox}>
               <Icon name="person-add" size={40} color={colors.white} />
             </LinearGradient>
-            <Text style={styles.logoTitle}>Crear Cuenta</Text>
+            <Text style={s.title}>Crear Cuenta</Text>
           </View>
 
-          <View style={styles.formCard}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Nombres</Text>
-              <View style={styles.inputContainer}>
+          <View style={s.card}>
+            <View style={s.inputGroup}>
+              <Text style={s.label}>Nombres</Text>
+              <View style={s.input}>
                 <Icon name="person-outline" size={20} color={colors.primaryLight} />
                 <TextInput
                   placeholder="Ej: Juan Carlos"
                   placeholderTextColor={colors.textMuted}
-                  style={styles.textInput}
+                  style={s.textInput}
                   value={firstName}
                   onChangeText={setFirstName}
                   autoCapitalize="words"
@@ -257,14 +224,14 @@ export default function RegisterScreen() {
               </View>
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Apellidos</Text>
-              <View style={styles.inputContainer}>
+            <View style={s.inputGroup}>
+              <Text style={s.label}>Apellidos</Text>
+              <View style={s.input}>
                 <Icon name="people-outline" size={20} color={colors.primaryLight} />
                 <TextInput
                   placeholder="Ej: Pérez García"
                   placeholderTextColor={colors.textMuted}
-                  style={styles.textInput}
+                  style={s.textInput}
                   value={lastName}
                   onChangeText={setLastName}
                   autoCapitalize="words"
@@ -273,14 +240,14 @@ export default function RegisterScreen() {
               </View>
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Fecha de Nacimiento</Text>
-              <View style={styles.inputContainer}>
+            <View style={s.inputGroup}>
+              <Text style={s.label}>Fecha de Nacimiento</Text>
+              <View style={s.input}>
                 <Icon name="calendar-outline" size={20} color={colors.primaryLight} />
                 <TextInput
                   placeholder="DD/MM/AAAA"
                   placeholderTextColor={colors.textMuted}
-                  style={styles.textInput}
+                  style={s.textInput}
                   value={birthDate}
                   onChangeText={handleDateChange}
                   keyboardType="numeric"
@@ -289,18 +256,18 @@ export default function RegisterScreen() {
                 />
               </View>
               {birthDate.length > 0 && birthDate.length < 10 && (
-                <Text style={styles.helperText}>Ejemplo: 15/08/2000</Text>
+                <Text style={s.helper}>Ejemplo: 15/08/2000</Text>
               )}
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Correo Electrónico</Text>
-              <View style={styles.inputContainer}>
+            <View style={s.inputGroup}>
+              <Text style={s.label}>Correo Electrónico</Text>
+              <View style={s.input}>
                 <Icon name="mail-outline" size={20} color={colors.primaryLight} />
                 <TextInput
                   placeholder="tu@email.com"
                   placeholderTextColor={colors.textMuted}
-                  style={styles.textInput}
+                  style={s.textInput}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -310,14 +277,14 @@ export default function RegisterScreen() {
               </View>
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Contraseña</Text>
-              <View style={styles.inputContainer}>
+            <View style={s.inputGroup}>
+              <Text style={s.label}>Contraseña</Text>
+              <View style={s.input}>
                 <Icon name="lock-closed-outline" size={20} color={colors.primaryLight} />
                 <TextInput
                   placeholder="Mínimo 6 caracteres"
                   placeholderTextColor={colors.textMuted}
-                  style={styles.textInput}
+                  style={s.textInput}
                   secureTextEntry={!showPassword}
                   value={password}
                   onChangeText={setPassword}
@@ -336,17 +303,17 @@ export default function RegisterScreen() {
             <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.8}>
               <LinearGradient
                 colors={colors.gradients.primary}
-                style={[styles.registerButton, loading && styles.buttonDisabled]}
+                style={[s.btn, loading && s.btnDisabled]}
               >
-                <Text style={styles.buttonText}>
+                <Text style={s.btnText}>
                   {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.loginLink} disabled={loading}>
-              <Text style={styles.loginText}>
-                ¿Ya tienes cuenta? <Text style={styles.loginTextBold}>Inicia sesión</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')} style={s.link} disabled={loading}>
+              <Text style={s.linkText}>
+                ¿Ya tienes cuenta? <Text style={s.linkBold}>Inicia sesión</Text>
               </Text>
             </TouchableOpacity>
           </View>
@@ -356,111 +323,24 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  keyboardView: { flex: 1 },
-  gradient: { flex: 1 },
-  codeBackground: {
-    position: 'absolute',
-    top: 80,
-    right: 20,
-    opacity: 0.05,
-  },
-  codeText: {
-    color: colors.white,
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    lineHeight: 20,
-  }, 
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 30,
-  }, 
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  logoBox: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },  
-  logoTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.white,
-  }, 
-  formCard: {
-    width: '100%',
-    maxWidth: 400,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(192, 132, 252, 0.3)',
-  },  
-  inputGroup: {
-    marginBottom: 14,
-  }, 
-  inputLabel: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 6,
-    marginLeft: 4,
-    fontWeight: '500',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(192, 132, 252, 0.4)',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    gap: 10,
-  },
-  textInput: {
-    flex: 1,
-    color: colors.white,
-    fontSize: 15,
-  }, 
-  registerButton: {
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  }, 
-  buttonDisabled: {
-    opacity: 0.6,
-  }, 
-  buttonText: {
-    color: colors.white,
-    fontWeight: 'bold',
-    fontSize: 16,
-  }, 
-  loginLink: {
-    marginTop: 16,
-    paddingVertical: 8,
-  }, 
-  loginText: {
-    color: colors.textSecondary,
-    textAlign: 'center',
-    fontSize: 14,
-  },  
-  loginTextBold: {
-    color: colors.primaryLight,
-    fontWeight: '600',
-  },
-  helperText: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 4,
-    marginLeft: 4,
-  },
+const s = StyleSheet.create({
+  flex: { flex: 1 },
+  codeBg: { position: 'absolute', top: 80, right: 20, opacity: 0.05 },
+  codeText: { color: colors.white, fontSize: 14, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', lineHeight: 20 },
+  scroll: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 30 },
+  logo: { alignItems: 'center', marginBottom: 24 },
+  logoBox: { width: 80, height: 80, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  title: { fontSize: 28, fontWeight: 'bold', color: colors.white },
+  card: { width: '100%', maxWidth: 400, backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: 'rgba(192, 132, 252, 0.3)' },
+  inputGroup: { marginBottom: 14 },
+  label: { fontSize: 13, color: colors.textSecondary, marginBottom: 6, marginLeft: 4, fontWeight: '500' },
+  input: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.08)', borderWidth: 1.5, borderColor: 'rgba(192, 132, 252, 0.4)', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, gap: 10 },
+  textInput: { flex: 1, color: colors.white, fontSize: 15 },
+  btn: { paddingVertical: 14, borderRadius: 14, alignItems: 'center', marginTop: 8 },
+  btnDisabled: { opacity: 0.6 },
+  btnText: { color: colors.white, fontWeight: 'bold', fontSize: 16 },
+  link: { marginTop: 16, paddingVertical: 8 },
+  linkText: { color: colors.textSecondary, textAlign: 'center', fontSize: 14 },
+  linkBold: { color: colors.primaryLight, fontWeight: '600' },
+  helper: { fontSize: 11, color: colors.textMuted, marginTop: 4, marginLeft: 4 },
 });

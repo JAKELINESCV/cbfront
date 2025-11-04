@@ -28,7 +28,7 @@ function AuthStack() {
   );
 }
 
-// 🔹 Stack para usuarios logueados
+// 🔹 Stack para usuarios logueados (TODAS las pantallas de la app aquí)
 function AppStack() {
   return (
     <Stack.Navigator
@@ -38,41 +38,32 @@ function AppStack() {
       }}
     >
       <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="LevelSelection" component={LevelSelectionScreen} />
+      <Stack.Screen name="Game" component={GameScreen} />
+      <Stack.Screen name="Result" component={ResultScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
     </Stack.Navigator>
   );
 }
-
-
-const RootStack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged((user) => {
-      setUser(user);
+    const unsubscribe = auth().onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
       if (initializing) setInitializing(false);
     });
     return unsubscribe;
   }, [initializing]);
 
+  // Pantalla de carga mientras verifica autenticación
   if (initializing) return null;
 
   return (
     <NavigationContainer>
-      <RootStack.Navigator screenOptions={{ headerShown: false }}>
-        {user ? (
-          <RootStack.Screen name="App" component={AppStack} />
-        ) : (
-          <RootStack.Screen name="Auth" component={AuthStack} />
-        )}
-        <RootStack.Screen name="Home" component={HomeScreen} />
-        <RootStack.Screen name="LevelSelection" component={LevelSelectionScreen} />
-        <RootStack.Screen name="Game" component={GameScreen} />
-        <RootStack.Screen name="Result" component={ResultScreen} />
-        <RootStack.Screen name="Profile" component={ProfileScreen} />
-      </RootStack.Navigator>
+      {user ? <AppStack /> : <AuthStack />}
     </NavigationContainer>
   );
 }

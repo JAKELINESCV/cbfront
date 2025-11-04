@@ -34,6 +34,7 @@ export default function GameScreen() {
 
   const getPointsForDifficultyAndLevel = (diff: string, lvl: string) => {
     const base = diff === 'intermediate' ? 15 : diff === 'advanced' ? 20 : 10;
+    // eslint-disable-next-line radix
     return base + (parseInt(lvl) - 1) * 5;
   };
 
