@@ -16,7 +16,8 @@ export const colors = {
   textMuted: '#9ca3af',      
   
   correct: '#10b981',        
-  incorrect: '#ef4444',      
+  incorrect: '#ef4444', 
+  error: '#ef4444',      
   warning: '#f59e0b',        
   
   levelBasic: '#3b82f6',     

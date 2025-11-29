@@ -1,22 +1,22 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  Alert, 
+import auth from '@react-native-firebase/auth';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
   ScrollView,
   StyleSheet,
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { colors } from '../../theme/colors';
+import { RegisterUseCase } from '../../../domain/usecases/auth/RegisterUseCase';
 
 type RootStackParamList = {
   Login: undefined;
@@ -26,9 +26,11 @@ type RootStackParamList = {
 
 type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Register'>;
 
+const registerUseCase = new RegisterUseCase();
+
 export default function RegisterScreen() {
   const navigation = useNavigation<RegisterScreenNavigationProp>();
-  
+
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [birthDate, setBirthDate] = useState('');
@@ -49,13 +51,13 @@ export default function RegisterScreen() {
   const handleDateChange = (text: string) => {
     const numbers = text.replace(/[^\d]/g, '');
     let formatted = '';
-    
+   
     if (numbers.length > 0) {
       formatted = numbers.substring(0, 2);
       if (numbers.length >= 3) formatted += '/' + numbers.substring(2, 4);
       if (numbers.length >= 5) formatted += '/' + numbers.substring(4, 8);
     }
-    
+   
     setBirthDate(formatted);
   };
 
@@ -85,6 +87,7 @@ export default function RegisterScreen() {
     const birth = new Date(year, month - 1, day);
     const today = new Date();
     const age = today.getFullYear() - birth.getFullYear();
+
     if (age < 18) {
       Alert.alert('Error', 'Debes tener al menos 18 años para registrarte.');
       return false;
@@ -104,60 +107,39 @@ export default function RegisterScreen() {
     return true;
   };
 
-  const createUserProfile = async (userId: string) => {
-    try {
-      const [day, month, year] = birthDate.split('/');
-      const formattedDate = `${year}-${month}-${day}`;
-
-      await firestore().collection('users').doc(userId).set({
-        id: userId,
-        email: email.toLowerCase(),
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        birthDate: formattedDate,
-        totalScore: 0,
-        gamesPlayed: 0,
-        bestScore: 0,
-        currentStreak: 0,
-        createdAt: firestore.FieldValue.serverTimestamp(),
-        updatedAt: firestore.FieldValue.serverTimestamp(),
-      });
-    } catch (error) {
-      console.error('Error al crear perfil:', error);
-      throw error;
-    }
-  };
-
   const handleRegister = async () => {
     if (!validateFields()) return;
 
     setLoading(true);
 
     try {
-      const userCredential = await auth().createUserWithEmailAndPassword(
-        email.toLowerCase().trim(),
-        password
-      );
+      // Convertir fecha de DD/MM/YYYY a YYYY-MM-DD para MySQL
+      const [day, month, year] = birthDate.split('/');
+      const formattedDate = `${year}-${month}-${day}`;
 
-      await userCredential.user.updateProfile({
-        displayName: `${firstName} ${lastName}`,
+      // Usar el UseCase para registro
+      const result = await registerUseCase.execute({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        birthDate: formattedDate,
+        email: email.toLowerCase().trim(),
+        password: password,
       });
 
-      await createUserProfile(userCredential.user.uid);
-
-      clearForm();
-
-      Alert.alert(
-        '🎉 ¡Bienvenido!', 
-        `Hola ${firstName}, tu cuenta ha sido creada exitosamente.\n\n¡Prepárate para desafiar tu mente!`,
-        [
-          {
-            text: 'Comenzar a Jugar',
-            onPress: () => navigation.navigate('Home'),
-          }
-        ]
-      );
-
+      if (result.success) {
+        await auth().signOut();
+        clearForm();
+        Alert.alert(
+          '🎉 ¡Cuenta creada!',
+          `Hola ${firstName}, tu cuenta ha sido creada correctamente.\n\nAhora inicia sesión para continuar.`,
+          [
+            {
+              text: 'Iniciar Sesion',
+              onPress: () => navigation.navigate('Login'),
+            }
+          ]
+        );
+      }
     } catch (error: any) {
       console.error('Error en registro:', error);
 
@@ -172,7 +154,7 @@ export default function RegisterScreen() {
           Alert.alert('Error', 'La contraseña es muy débil.');
           break;
         default:
-          Alert.alert('Error', 'No se pudo crear la cuenta.');
+          Alert.alert('Error', error.message || 'No se pudo crear la cuenta.');
       }
     } finally {
       setLoading(false);
@@ -180,7 +162,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={s.flex}
     >
@@ -196,7 +178,7 @@ export default function RegisterScreen() {
           <Text style={s.codeText}>{'}'}</Text>
         </View>
 
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={s.scroll}
           showsVerticalScrollIndicator={false}
         >
@@ -291,10 +273,10 @@ export default function RegisterScreen() {
                   editable={!loading}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)} disabled={loading}>
-                  <Icon 
-                    name={showPassword ? "eye-outline" : "eye-off-outline"} 
-                    size={20} 
-                    color={colors.primaryLight} 
+                  <Icon
+                    name={showPassword ? "eye-outline" : "eye-off-outline"}
+                    size={20}
+                    color={colors.primaryLight}
                   />
                 </TouchableOpacity>
               </View>

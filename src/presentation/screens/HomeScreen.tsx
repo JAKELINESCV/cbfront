@@ -8,13 +8,12 @@ import {
   Alert,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { colors } from '../theme/colors';
-import { User } from '../../domain/entities/User';
+import { useUser } from '../../context/UserContext'; // ✅ Importar Context
 import { getAllLocalScores } from '../../utils/AsyncStorageHelper';
 
 type RootStackParamList = {
@@ -30,33 +29,20 @@ export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const currentUser = auth().currentUser;
 
-  const [userData, setUserData] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  // ✅ Usar Context en lugar de Firebase/Firestore
+  const { user: userData, loading } = useUser();
+
   const [localScores, setLocalScores] = useState({ basic: 0, intermediate: 0, advanced: 0 });
 
   useEffect(() => {
     if (!currentUser) return;
 
-    const unsubscribe = firestore()
-      .collection('users')
-      .doc(currentUser.uid)
-      .onSnapshot(
-        async (doc) => {
-          if (doc.exists()) {
-            const data = doc.data() as User;
-            setUserData(data);
-            const scores = await getAllLocalScores(currentUser.uid);
-            setLocalScores(scores);
-          }
-          setLoading(false);
-        },
-        (error) => {
-          console.error('Error al cargar usuario:', error);
-          setLoading(false);
-        }
-      );
+    const loadLocalScores = async () => {
+      const scores = await getAllLocalScores(currentUser.uid);
+      setLocalScores(scores);
+    };
 
-    return () => unsubscribe();
+    loadLocalScores();
   }, [currentUser]);
 
   const handleLogout = () => {
@@ -73,6 +59,7 @@ export default function HomeScreen() {
   const logoutAsync = async () => {
     try {
       await auth().signOut();
+      navigation.replace('Login');
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
       Alert.alert('Error', 'No se pudo cerrar la sesión');
@@ -95,10 +82,18 @@ export default function HomeScreen() {
     <LinearGradient colors={colors.gradients.background} style={s.container}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.header}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Profile')}
+            style={s.profileBtn}
+          >
+            <Icon name="person-circle-outline" size={30} color={colors.white} />
+          </TouchableOpacity>
+
           <View>
             <Text style={s.greeting}>¡Hola! 👋</Text>
-            <Text style={s.username}>{userData?.firstName || 'Jugador'}</Text>
+            <Text style={s.username}>{userData?.firstName ?? ''}</Text>
           </View>
+
           <TouchableOpacity onPress={handleLogout} style={s.logoutBtn}>
             <Icon name="log-out-outline" size={24} color={colors.white} />
           </TouchableOpacity>
@@ -114,7 +109,7 @@ export default function HomeScreen() {
 
         <View style={s.statsCard}>
           <Text style={s.statsTitle}>Tus Estadísticas</Text>
-          
+
           <View style={s.statsGrid}>
             <View style={s.statItem}>
               <Icon name="trophy" size={32} color={colors.primary} />
@@ -153,7 +148,7 @@ export default function HomeScreen() {
 
         <View style={s.quick}>
           <Text style={s.quickTitle}>Acceso Rápido</Text>
-          
+
           <View style={s.levelBtns}>
             <TouchableOpacity
               style={[s.levelCard, s.levelBasic]}
@@ -226,4 +221,5 @@ const s = StyleSheet.create({
   levelDesc: { fontSize: 11, color: 'rgba(255, 255, 255, 0.8)', marginTop: 4 },
   decoration: { alignItems: 'center', marginTop: 16, opacity: 0.3 },
   decorText: { fontSize: 24, color: colors.white, fontFamily: 'monospace' },
+  profileBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255, 255, 255, 0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, },
 });
