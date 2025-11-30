@@ -7,11 +7,11 @@ export interface User {
   firstName: string;          
   lastName: string;           
   birthDate: string;          
-  avatarUrl?: string;         // Foto de perfil (opcional)
-  totalScore: number;         // Puntuación total acumulada
-  gamesPlayed: number;        // Total de partidas jugadas
-  bestScore: number;          // Mejor puntuación en una partida
-  currentStreak: number;      // Racha actual de respuestas correctas
-  createdAt: Date;            // Fecha de registro
-  updatedAt: Date;            // Última actualización
+  avatarUrl?: string;     
+  totalScore: number;        
+  gamesPlayed: number;      
+  bestScore: number;         
+  currentStreak: number;    
+  createdAt: Date;           
+  updatedAt: Date;            
 }

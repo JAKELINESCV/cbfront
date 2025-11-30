@@ -51,13 +51,13 @@ export default function RegisterScreen() {
   const handleDateChange = (text: string) => {
     const numbers = text.replace(/[^\d]/g, '');
     let formatted = '';
-   
+
     if (numbers.length > 0) {
       formatted = numbers.substring(0, 2);
       if (numbers.length >= 3) formatted += '/' + numbers.substring(2, 4);
       if (numbers.length >= 5) formatted += '/' + numbers.substring(4, 8);
     }
-   
+
     setBirthDate(formatted);
   };
 
@@ -113,11 +113,9 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      // Convertir fecha de DD/MM/YYYY a YYYY-MM-DD para MySQL
       const [day, month, year] = birthDate.split('/');
       const formattedDate = `${year}-${month}-${day}`;
 
-      // Usar el UseCase para registro
       const result = await registerUseCase.execute({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -127,15 +125,18 @@ export default function RegisterScreen() {
       });
 
       if (result.success) {
+        await auth().currentUser?.reload();
         await auth().signOut();
+
         clearForm();
+
         Alert.alert(
           '🎉 ¡Cuenta creada!',
           `Hola ${firstName}, tu cuenta ha sido creada correctamente.\n\nAhora inicia sesión para continuar.`,
           [
             {
-              text: 'Iniciar Sesion',
-              onPress: () => navigation.navigate('Login'),
+              text: 'OK',
+              onPress: () => {},
             }
           ]
         );

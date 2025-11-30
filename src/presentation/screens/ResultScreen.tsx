@@ -9,7 +9,6 @@ export default function ResultScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { score = 0, total = 1, difficulty = 'desconocido' } = route.params ?? {};
-
   const percentage = Math.round((score / total) * 100);
 
   const getMessage = () => {
@@ -29,18 +28,26 @@ export default function ResultScreen() {
         <Text style={styles.message}>{getMessage()}</Text>
 
         <View style={styles.buttonsContainer}>
-          <TouchableOpacity style={[styles.button, styles.playAgain]} onPress={() => navigation.navigate('Home')}>
+          <TouchableOpacity 
+            style={[styles.button, styles.playAgain]} 
+            onPress={() => navigation.replace('Tabs')}
+          >
             <Icon name="home" size={20} color="#fff" />
             <Text style={styles.buttonText}>Volver al menú</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.button, styles.retry]} onPress={() => navigation.replace('Game', { difficulty })}>
+          <TouchableOpacity 
+            style={[styles.button, styles.retry]} 
+            onPress={() => navigation.replace('Game', { difficulty })}
+          >
             <Icon name="refresh" size={20} color="#fff" />
             <Text style={styles.buttonText}>Jugar de nuevo</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.levelText}>Nivel jugado: {(difficulty || 'Desconocido').toUpperCase()}</Text>
+        <Text style={styles.levelText}>
+          Nivel jugado: {(difficulty || 'Desconocido').toUpperCase()}
+        </Text>
       </View>
     </LinearGradient>
   );

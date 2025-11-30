@@ -9,15 +9,17 @@ import AnswerButton from '../components/AnswerButton';
 import ScoreBoard from '../components/ScoreBoard';
 import { getQuestionsByLevelUseCase } from '../../domain/usecases/game/GetQuestionsByLevelUseCase';
 import { calculateScoreUseCase } from '../../domain/usecases/game/CalculateScoreUseCase';
-import { saveLocalScoreCase } from '../../utils/AsyncStorageHelper'; // <-- IMPORT
+import { saveLocalScoreCase } from '../../utils/AsyncStorageHelper';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { WebView } from 'react-native-webview';
 
+// 🔥 Para actualizar estadísticas en Home
+import { useUser } from '../../context/UserContext';
+
 export default function GameScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-
   const difficulty = route.params?.difficulty ?? 'basic';
   const level = route.params?.level ?? '1';
 
@@ -32,9 +34,11 @@ export default function GameScreen() {
   const { width } = Dimensions.get('window');
   const currentUser = auth().currentUser;
 
+  // 🔥 Hook para refrescar datos del usuario
+  const { refreshUser } = useUser();
+
   const getPointsForDifficultyAndLevel = (diff: string, lvl: string) => {
     const base = diff === 'intermediate' ? 15 : diff === 'advanced' ? 20 : 10;
-    // eslint-disable-next-line radix
     return base + (parseInt(lvl) - 1) * 5;
   };
 
@@ -70,28 +74,40 @@ export default function GameScreen() {
       setSelectedOption(null);
       setTimerKey(prev => prev + 1);
     } else {
-      // Guardar puntaje local por usuario y dificultad
+      // ================================
+      // 🔥 Guarda estadísticas
+      // ================================
       if (currentUser) {
-        await saveLocalScoreCase(currentUser.uid, difficulty as any, currentScore);
+        try {
+          await saveLocalScoreCase(currentUser.uid, difficulty as any, currentScore);
 
-        // Actualizar estadísticas en Firestore
-        const userDoc = firestore().collection('users').doc(currentUser.uid);
-        const docSnap = await userDoc.get();
-if (docSnap.exists()) {
-  const data = docSnap.data();
-  const newTotal = (data?.totalScore || 0) + currentScore;
-  const newGames = (data?.gamesPlayed || 0) + 1;
-  const newBest = Math.max(data?.bestScore || 0, currentScore);
+          const userDoc = firestore().collection('users').doc(currentUser.uid);
+          const docSnap = await userDoc.get();
 
-  await userDoc.update({
-    totalScore: newTotal,
-    gamesPlayed: newGames,
-    bestScore: newBest,
-  });
-}
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            const newTotal = (data?.totalScore || 0) + currentScore;
+            const newGames = (data?.gamesPlayed || 0) + 1;
+            const newBest = Math.max(data?.bestScore || 0, currentScore);
 
+            await userDoc.update({
+              totalScore: newTotal,
+              gamesPlayed: newGames,
+              bestScore: newBest,
+            });
+          }
+
+          // 🔥 Actualiza Home inmediatamente
+          await refreshUser();
+
+        } catch (error) {
+          console.log("⚠️ Error guardando en Firestore:", error);
+        }
       }
 
+      // ================================
+      // Ir a pantalla de resultado
+      // ================================
       navigation.replace('Result', {
         score: currentScore,
         total: totalPoints,
@@ -130,6 +146,7 @@ if (docSnap.exists()) {
           const isSelected = selectedOption === idx;
           const isCorrect = selectedOption !== null && idx === currentQuestion.answer;
           const isWrong = selectedOption !== null && isSelected && idx !== currentQuestion.answer;
+
           return (
             <AnswerButton
               key={idx}

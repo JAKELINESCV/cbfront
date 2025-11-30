@@ -1,10 +1,6 @@
 import axios from 'axios';
 
-// Configurar la URL base de tu API
-const API_URL = 'http://192.168.1.40:3000/api'; // Cambiar por tu IP o dominio
-
-// Para desarrollo en dispositivo físico, usa tu IP local:
-// const API_URL = 'http:// 192.168.1.40:3000/api';
+const API_URL = 'http://192.168.1.40:3000/api'; 
 
 const api = axios.create({
   baseURL: API_URL,
@@ -14,7 +10,6 @@ const api = axios.create({
   },
 });
 
-// Interfaces
 interface SyncUserData {
   firebase_uid: string;
   first_name: string;
@@ -36,9 +31,7 @@ interface UpdateStatsData {
   is_best_score?: boolean;
 }
 
-// API de Usuarios
 export const userApi = {
-  // Sincronizar/crear usuario al registrarse
   syncUser: async (data: SyncUserData) => {
     try {
       const response = await api.post('/users/sync', data);
@@ -48,17 +41,16 @@ export const userApi = {
     }
   },
 
-  // Obtener perfil del usuario
   getProfile: async (firebaseUid: string) => {
     try {
       const response = await api.get(`/users/${firebaseUid}`);
+      console.log("📡 RESPUESTA DEL BACKEND:", response.data);
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Error al obtener perfil');
     }
   },
 
-  // Actualizar datos del perfil
   updateProfile: async (firebaseUid: string, data: UpdateProfileData) => {
     console.log('📡 API updateProfile llamado');
     console.log('🆔 firebaseUid:', firebaseUid);
@@ -76,18 +68,42 @@ export const userApi = {
     }
   },
 
-  
-  // Actualizar estadísticas después de un juego
+  // 🔥🔥🔥 CORREGIDO: ahora devuelve SIEMPRE estadísticas reales del backend
   updateStats: async (firebaseUid: string, data: UpdateStatsData) => {
+    console.log("📤 Enviando estadísticas:", data);
+
     try {
       const response = await api.patch(`/users/${firebaseUid}/stats`, data);
-      return response.data;
+
+      console.log("📥 Respuesta UPDATE STATS:", response.data);
+
+      // 🔥 Si el backend devuelve estadísticas, las regresamos tal cual
+      if (response.data?.stats) {
+        return response.data.stats;
+      }
+
+      // 🔥 Si devuelve campos sueltos como totalScore o gamesPlayed
+      if (
+        response.data?.totalScore !== undefined ||
+        response.data?.gamesPlayed !== undefined ||
+        response.data?.bestScore !== undefined
+      ) {
+        return response.data;
+      }
+
+      // 🔥 Si solo devuelve message, prevenimos que Home quede en 0
+      return {
+        totalScore: data.score,
+        gamesPlayed: 1,
+        bestScore: data.is_best_score ? data.score : 0,
+      };
+
     } catch (error: any) {
+      console.error("❌ Error en updateStats:", error.response?.data);
       throw new Error(error.response?.data?.message || 'Error al actualizar estadísticas');
     }
   },
 
-  // Eliminar cuenta
   deleteUser: async (firebaseUid: string) => {
     try {
       const response = await api.delete(`/users/${firebaseUid}`);
@@ -97,7 +113,6 @@ export const userApi = {
     }
   },
 
-  // Obtener ranking de usuarios
   getRanking: async (limit: number = 10) => {
     try {
       const response = await api.get(`/users/ranking/top?limit=${limit}`);
@@ -109,5 +124,3 @@ export const userApi = {
 };
 
 export default api;
-
-

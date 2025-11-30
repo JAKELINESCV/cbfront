@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import { useNavigation } from '@react-navigation/native';
@@ -45,26 +44,8 @@ export default function HomeScreen() {
     loadLocalScores();
   }, [currentUser]);
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro que quieres salir?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Salir', style: 'destructive', onPress: () => logoutAsync() },
-      ]
-    );
-  };
-
-  const logoutAsync = async () => {
-    try {
-      await auth().signOut();
-      navigation.replace('Login');
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error);
-      Alert.alert('Error', 'No se pudo cerrar la sesión');
-    }
-  };
+  
+ 
 
   const handlePlayGame = () => {
     navigation.navigate('LevelSelection', { difficulty: 'basic' });
@@ -81,23 +62,7 @@ export default function HomeScreen() {
   return (
     <LinearGradient colors={colors.gradients.background} style={s.container}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-        <View style={s.header}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Profile')}
-            style={s.profileBtn}
-          >
-            <Icon name="person-circle-outline" size={30} color={colors.white} />
-          </TouchableOpacity>
-
-          <View>
-            <Text style={s.greeting}>¡Hola! 👋</Text>
-            <Text style={s.username}>{userData?.firstName ?? ''}</Text>
-          </View>
-
-          <TouchableOpacity onPress={handleLogout} style={s.logoutBtn}>
-            <Icon name="log-out-outline" size={24} color={colors.white} />
-          </TouchableOpacity>
-        </View>
+        
 
         <View style={s.logo}>
           <LinearGradient colors={colors.gradients.primary} style={s.logoBox}>
@@ -194,7 +159,6 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 },
   greeting: { fontSize: 16, color: colors.textSecondary },
   username: { fontSize: 28, fontWeight: 'bold', color: colors.white },
-  logoutBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255, 255, 255, 0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
   logo: { alignItems: 'center', marginBottom: 30 },
   logoBox: { width: 120, height: 120, borderRadius: 30, alignItems: 'center', justifyContent: 'center', marginBottom: 16, shadowColor: colors.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 10 },
   title: { fontSize: 36, fontWeight: 'bold', color: colors.white, marginBottom: 8 },
@@ -221,5 +185,8 @@ const s = StyleSheet.create({
   levelDesc: { fontSize: 11, color: 'rgba(255, 255, 255, 0.8)', marginTop: 4 },
   decoration: { alignItems: 'center', marginTop: 16, opacity: 0.3 },
   decorText: { fontSize: 24, color: colors.white, fontFamily: 'monospace' },
-  profileBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255, 255, 255, 0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, },
+  headerCenter: {
+  alignItems: 'center',
+  marginBottom: 30,
+},
 });
