@@ -13,9 +13,8 @@ import { saveLocalScoreCase } from '../../utils/AsyncStorageHelper';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { WebView } from 'react-native-webview';
-
-// 🔥 Para actualizar estadísticas en Home
 import { useUser } from '../../context/UserContext';
+import { gameApi } from '../../services/api';
 
 export default function GameScreen() {
   const navigation = useNavigation<any>();
@@ -33,8 +32,6 @@ export default function GameScreen() {
 
   const { width } = Dimensions.get('window');
   const currentUser = auth().currentUser;
-
-  // 🔥 Hook para refrescar datos del usuario
   const { refreshUser } = useUser();
 
   const getPointsForDifficultyAndLevel = (diff: string, lvl: string) => {
@@ -46,7 +43,6 @@ export default function GameScreen() {
     const loadQuestions = async () => {
       const pts = getPointsForDifficultyAndLevel(difficulty, level);
       setPointsPerQuestion(pts);
-
       const fetchedQuestions = await getQuestionsByLevelUseCase(difficulty, level);
       setQuestions(fetchedQuestions.sort(() => Math.random() - 0.5));
       setTotalPoints(fetchedQuestions.length * pts);
@@ -56,7 +52,6 @@ export default function GameScreen() {
 
   const handleAnswer = (index: number) => {
     if (selectedOption !== null) return;
-
     setSelectedOption(index);
     const currentQuestion = questions[currentIndex];
     const isCorrect = index === currentQuestion.answer;
@@ -64,6 +59,7 @@ export default function GameScreen() {
     let newScore = score;
     if (isCorrect) newScore = calculateScoreUseCase(score, pointsPerQuestion);
     setScore(newScore);
+    questions[currentIndex].selected = index;
 
     setTimeout(() => handleNextQuestion(newScore), 800);
   };
@@ -75,7 +71,7 @@ export default function GameScreen() {
       setTimerKey(prev => prev + 1);
     } else {
       // ================================
-      // 🔥 Guarda estadísticas
+      // Guardar estadísticas locales + Firestore
       // ================================
       if (currentUser) {
         try {
@@ -86,28 +82,52 @@ export default function GameScreen() {
 
           if (docSnap.exists()) {
             const data = docSnap.data();
-            const newTotal = (data?.totalScore || 0) + currentScore;
-            const newGames = (data?.gamesPlayed || 0) + 1;
-            const newBest = Math.max(data?.bestScore || 0, currentScore);
-
             await userDoc.update({
-              totalScore: newTotal,
-              gamesPlayed: newGames,
-              bestScore: newBest,
+              totalScore: (data?.totalScore || 0) + currentScore,
+              gamesPlayed: (data?.gamesPlayed || 0) + 1,
+              bestScore: Math.max(data?.bestScore || 0, currentScore),
             });
           }
-
-          // 🔥 Actualiza Home inmediatamente
-          await refreshUser();
-
         } catch (error) {
           console.log("⚠️ Error guardando en Firestore:", error);
         }
       }
 
       // ================================
-      // Ir a pantalla de resultado
+      // ENVIAR PARTIDA AL BACKEND Y ACTUALIZAR HOME
       // ================================
+      if (!currentUser) {
+        console.log("⚠️ Usuario no autenticado");
+        navigation.replace('Result', {
+          score: currentScore,
+          total: totalPoints,
+          difficulty,
+        });
+        return;
+      }
+
+      try {
+        const correctAnswers = questions.filter(q => q.answer === q.selected).length;
+        const wrongAnswers = questions.length - correctAnswers;
+
+        console.log('🎮 Finalizando partida...');
+        const gameStats = await gameApi.finishGame(currentUser.uid, {
+          difficulty,
+          totalScore: currentScore,
+          correctAnswers,
+          wrongAnswers,
+          timeTaken: 0,
+        });
+
+        console.log("✅ Partida registrada:", gameStats);
+        
+        await refreshUser();
+        console.log("🔄 Context actualizado");
+
+      } catch (err) {
+        console.log("⚠️ Error enviando partida al backend:", err);
+      }
+
       navigation.replace('Result', {
         score: currentScore,
         total: totalPoints,

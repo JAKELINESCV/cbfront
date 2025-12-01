@@ -91,7 +91,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   // ============================================
-  //  🔥 REFRESCA EL USUARIO (LLAMAR DESDE EL GAME)
+  //  REFRESCA EL USUARIO (LLAMAR DESDE EL GAME)
   // ============================================
   const refreshUser = async () => {
     const firebaseUser = auth().currentUser;
@@ -110,14 +110,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // ============================================
-  //  🔥 ACTUALIZA LOCALMENTE SIN ROMPER NADA
+  //  ACTUALIZA LOCALMENTE SIN ROMPER NADA
   // ============================================
   const updateUserData = (data: Partial<User>) => {
     if (user) {
       setUser({ ...user, ...data });
     }
 
-    // 🚀 ACTUALIZA INMEDIATAMENTE SIN ESPERAR GAME O RELOAD
+    // ACTUALIZA INMEDIATAMENTE SIN ESPERAR GAME O RELOAD
     refreshUser();
   };
 

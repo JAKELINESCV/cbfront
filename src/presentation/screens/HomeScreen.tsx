@@ -12,7 +12,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { colors } from '../theme/colors';
-import { useUser } from '../../context/UserContext'; // ✅ Importar Context
+import { useUser } from '../../context/UserContext'; 
 import { getAllLocalScores } from '../../utils/AsyncStorageHelper';
 
 type RootStackParamList = {

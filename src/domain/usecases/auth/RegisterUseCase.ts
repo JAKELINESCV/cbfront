@@ -4,7 +4,7 @@ import { userApi } from '../../../services/api';
 interface RegisterData {
   firstName: string;
   lastName: string;
-  birthDate: string; // formato: YYYY-MM-DD
+  birthDate: string; 
   email: string;
   password: string;
 }
@@ -29,7 +29,7 @@ export class RegisterUseCase {
         first_name: data.firstName.trim(),
         last_name: data.lastName.trim(),
         email: data.email.toLowerCase().trim(),
-        birth_date: data.birthDate, // Ya debe venir en formato YYYY-MM-DD
+        birth_date: data.birthDate, 
       });
 
       if (!response.success) {
@@ -44,7 +44,6 @@ export class RegisterUseCase {
     } catch (error: any) {
       console.error('Error en RegisterUseCase:', error);
 
-      // Si falla el registro en MySQL pero ya se creó en Firebase, eliminar de Firebase
       if (error.message.includes('servidor') && auth().currentUser) {
         await auth().currentUser?.delete();
       }
